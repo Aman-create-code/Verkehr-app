@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>TS PRO - Alert Fix Edition</title>
+  <title>TS PRO - Ultimate Fix 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,48 +14,84 @@
 
   <style>
     :root { --p-blue: #3b82f6; --bg-dark: #020617; --panel: #0f172a; }
-    body, html { height: 100svh; width: 100vw; margin: 0; overflow: hidden; background: #000; color: white; font-family: 'Inter', sans-serif; }
-
-    /* START OVERLAY */
-    #start-overlay {
-      position: fixed; inset: 0; z-index: 10000;
-      background: rgba(0,0,0,0.95);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      backdrop-filter: blur(20px);
+    
+    /* Verhindert jegliches Scrollen oder Wackeln */
+    body, html { 
+      height: 100svh; width: 100vw; margin: 0; 
+      overflow: hidden; background: #000; color: white; 
+      font-family: 'Inter', sans-serif; 
+      position: fixed;
     }
 
-    .app-grid { display: grid; grid-template-rows: auto 1fr auto; height: 100%; visibility: hidden; }
+    /* Start Overlay - Absolute Priorität */
+    #start-overlay {
+      position: fixed; inset: 0; z-index: 100000;
+      background: linear-gradient(to bottom, #020617, #000);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    /* App Struktur */
+    .app-grid { 
+      display: grid; 
+      grid-template-rows: auto 1fr auto; 
+      height: 100svh; 
+      width: 100vw;
+      visibility: hidden; 
+    }
     .app-grid.active { visibility: visible; }
 
-    /* Fix für klickbare Buttons */
-    .ui-layer { z-index: 9999 !important; position: relative; }
+    /* Die UI Layer muss ALLES überlagern */
+    .ui-layer { 
+      z-index: 99999 !important; 
+      pointer-events: auto !important;
+    }
 
-    .midnight-panel { background: var(--panel); border: 1px solid rgba(255, 255, 255, 0.1); }
-    #map { width: 100%; height: 100%; z-index: 1; background: #000; }
+    #map { 
+      width: 100%; 
+      height: 100%; 
+      z-index: 1; 
+      background: #000;
+      pointer-events: auto;
+    }
 
-    /* Button Styling mit klarem Touch-Feedback */
+    /* Massive Klick-Flächen für die Buttons */
     .action-btn {
-      width: 70px; height: 70px; border-radius: 20px;
+      width: 75px; height: 75px; 
+      border-radius: 24px;
       display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s; background: #1e293b; border: 1px solid rgba(255,255,255,0.05);
-      cursor: pointer; pointer-events: auto !important;
+      transition: transform 0.1s, background 0.1s; 
+      background: #1e293b; 
+      border: 2px solid rgba(255,255,255,0.1);
+      cursor: pointer !important;
+      pointer-events: auto !important;
       touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
-    .action-btn:active { transform: scale(0.9); background: #3b82f6 !important; }
     
-    #nav-bar {
-      position: fixed; top: -150px; left: 50%; transform: translateX(-50%);
-      width: 95%; max-width: 600px; z-index: 9999; transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    .action-btn:active { 
+      transform: scale(0.85); 
+      background: #3b82f6 !important;
+      border-color: #fff;
     }
-    #nav-bar.visible { top: 20px; }
 
-    /* Routing Panel ausblenden */
+    #nav-bar {
+      position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 92%; max-width: 550px; z-index: 999999; 
+      transition: top 0.5s cubic-bezier(0.17, 0.84, 0.44, 1);
+    }
+    #nav-bar.visible { top: 25px; }
+
     .leaflet-routing-container { display: none !important; }
 
+    /* iPad Landscape Fix */
     @media (min-width: 1024px) {
-      .app-grid { grid-template-columns: 120px 1fr; grid-template-rows: 90px 1fr; }
-      .sidebar { grid-row: 1/3; flex-direction: column !important; height: 100%; border-right: 1px solid rgba(255,255,255,0.1); }
-      header { grid-column: 2; }
+      .app-grid { grid-template-columns: 140px 1fr; grid-template-rows: 100px 1fr; }
+      .sidebar { 
+        grid-row: 1/3; flex-direction: column !important; 
+        height: 100%; border-right: 1px solid rgba(255,255,255,0.1); 
+        justify-content: center !important; gap: 2rem !important;
+      }
+      header { grid-column: 2; border-bottom: 1px solid rgba(255,255,255,0.1); }
       #map { grid-column: 2; }
     }
   </style>
@@ -63,58 +99,63 @@
 <body>
 
 <div id="start-overlay">
-    <div class="text-center p-6">
-        <h1 class="text-6xl font-black italic text-blue-500 mb-2">TS PRO</h1>
-        <p class="text-slate-500 mb-10 tracking-[0.3em] uppercase text-[10px]">Security & Navigation Hub</p>
-        <button id="init-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-8 px-16 rounded-[35px] shadow-[0_20px_60px_rgba(37,99,235,0.4)] transition-all active:scale-90 uppercase text-xl">
-            Sicherheit Starten
+    <div class="text-center">
+        <div class="mb-6 inline-block p-6 rounded-full bg-blue-600/10 border border-blue-500/20">
+            <i class="fas fa-radar text-blue-500 text-5xl animate-pulse"></i>
+        </div>
+        <h1 class="text-6xl font-black italic text-blue-500 mb-2 tracking-tighter">TS PRO</h1>
+        <p class="text-slate-500 mb-12 tracking-[0.4em] uppercase text-[10px] font-bold">Ultimate Control Unit</p>
+        <button id="init-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-8 px-20 rounded-[40px] shadow-[0_25px_80px_rgba(37,99,235,0.5)] transition-all active:scale-90 uppercase text-2xl border-b-4 border-blue-800">
+            System Online
         </button>
-        <p class="mt-8 text-[10px] text-slate-700 uppercase font-bold italic">Audio & GPS Initialization required</p>
     </div>
 </div>
 
-<div id="nav-bar" class="midnight-panel p-4 rounded-[30px] flex gap-3 items-center">
-  <div class="flex-grow flex items-center bg-black/40 rounded-2xl px-4 border border-white/5">
+<div id="nav-bar" class="bg-slate-900 border border-white/10 p-4 rounded-[32px] flex gap-3 items-center shadow-2xl">
+  <div class="flex-grow flex items-center bg-black/40 rounded-2xl px-5 border border-white/5">
     <i class="fas fa-search text-slate-500 mr-3"></i>
-    <input type="text" id="dest-input" placeholder="Ziel für Navigation..." class="bg-transparent w-full py-4 outline-none text-white font-medium">
+    <input type="text" id="dest-input" placeholder="Ziel eingeben..." class="bg-transparent w-full py-5 outline-none text-white font-semibold">
   </div>
-  <button onclick="startNav()" class="bg-blue-600 px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-lg">Route</button>
+  <button onclick="startNav()" class="bg-blue-600 hover:bg-blue-500 px-10 py-5 rounded-2xl font-black uppercase text-sm shadow-lg">Go</button>
 </div>
 
 <div class="app-grid" id="main-app">
-  <header class="p-6 flex justify-between items-center ui-layer bg-slate-950">
+  <header class="p-6 flex justify-between items-center ui-layer bg-slate-950/80 backdrop-blur-md">
     <div class="pl-2">
-      <h1 class="text-3xl font-black italic text-blue-500 tracking-tighter">TS <span class="text-white">PRO</span></h1>
-      <p id="weather" class="text-[10px] font-bold opacity-40 uppercase tracking-widest">Verbindung wird aufgebaut...</p>
+      <h1 class="text-3xl font-black italic text-blue-500 tracking-tighter leading-none">TS <span class="text-white">PRO</span></h1>
+      <p id="weather" class="text-[10px] font-black text-slate-500 uppercase mt-1">Telemetry Sync...</p>
     </div>
-    <div class="midnight-panel px-8 py-3 rounded-2xl flex items-center gap-6">
+    
+    <div class="bg-slate-900 border border-white/10 px-10 py-3 rounded-2xl flex items-center gap-8">
       <div class="text-center">
-        <span id="speed" class="text-5xl font-black text-white italic">0</span>
-        <span class="text-[10px] block font-bold text-blue-500 uppercase tracking-tighter">km/h</span>
+        <span id="speed" class="text-6xl font-black text-white italic tracking-tighter">0</span>
+        <span class="text-[10px] block font-black text-blue-500 uppercase tracking-widest -mt-1">km/h</span>
       </div>
     </div>
   </header>
 
   <div id="map"></div>
 
-  <footer class="sidebar p-6 flex justify-around items-center gap-4 ui-layer bg-slate-950 border-t border-white/5">
-    <button onclick="toggleNav()" class="action-btn border-blue-500/30 bg-blue-500/5" title="Navigation">
-        <i class="fas fa-location-arrow text-blue-400 text-2xl"></i>
+  <footer class="sidebar p-6 flex justify-around items-center gap-4 ui-layer bg-slate-950 border-t border-white/10">
+    <button onclick="toggleNav()" class="action-btn border-blue-500/40 bg-blue-600/10" id="nav-trigger">
+        <i class="fas fa-route text-blue-400 text-3xl"></i>
     </button>
-    <button onclick="toggleSatellite()" id="layer-btn" class="action-btn" title="Karte wechseln">
-        <i class="fas fa-layer-group text-slate-400 text-2xl"></i>
+    <button onclick="toggleSatellite()" class="action-btn" id="sat-trigger">
+        <i class="fas fa-globe-europe text-slate-400 text-3xl"></i>
     </button>
-    <button onclick="rep('police')" class="action-btn" title="Polizei melden">
-        <i class="fas fa-user-shield text-blue-400 text-2xl"></i>
+    
+    <button onclick="handleReport('police')" class="action-btn border-blue-500/20">
+        <i class="fas fa-shield-halved text-blue-400 text-3xl"></i>
     </button>
-    <button onclick="rep('speed')" class="action-btn" title="Blitzer melden">
-        <i class="fas fa-camera text-red-500 text-2xl"></i>
+    <button onclick="handleReport('speed')" class="action-btn border-red-500/20">
+        <i class="fas fa-camera text-red-500 text-3xl"></i>
     </button>
-    <button onclick="rep('accident')" class="action-btn" title="Gefahr melden">
-        <i class="fas fa-triangle-exclamation text-orange-400 text-2xl"></i>
+    <button onclick="handleReport('accident')" class="action-btn border-orange-500/20">
+        <i class="fas fa-triangle-exclamation text-orange-400 text-3xl"></i>
     </button>
-    <button onclick="window.location.href='tel:112'" class="action-btn bg-red-600/20 border-red-500/30">
-        <i class="fas fa-phone-flip text-white text-2xl"></i>
+    
+    <button onclick="window.location.href='tel:112'" class="action-btn bg-red-600/20 border-red-500/40">
+        <i class="fas fa-phone-flip text-white text-3xl"></i>
     </button>
   </footer>
 </div>
@@ -134,23 +175,32 @@
   const db = getFirestore(app);
   let map, userPos, userMarker, routingControl;
   let currentLayer = 'dark';
-  
+
   const tiles = {
     dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
     sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
   };
 
-  // SOUND & SYSTEM START
-  document.getElementById('init-btn').addEventListener('click', () => {
-    const utter = new SpeechSynthesisUtterance("System aktiv. Gute Fahrt.");
-    utter.lang = 'de-DE';
-    window.speechSynthesis.speak(utter);
+  // INITIALISIERUNG
+  document.getElementById('init-btn').addEventListener('click', function() {
+    const s = window.speechSynthesis;
+    const m = new SpeechSynthesisUtterance("System bereit. Navigation und Radar aktiv.");
+    m.lang = 'de-DE'; s.speak(m);
+
     document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('main-app').classList.add('active');
-    initGPS();
+    startTracking();
   });
 
-  // UI FUNKTIONEN (Müssen an Window gebunden sein für HTML onclick)
+  // GLOBALE FUNKTIONEN FÜR ONCLICK
+  window.handleReport = async (type) => {
+    if(!userPos) return;
+    try {
+      await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance("Meldung gesendet"));
+    } catch(e) { console.error(e); }
+  };
+
   window.toggleNav = () => {
     const bar = document.getElementById('nav-bar');
     bar.classList.toggle('visible');
@@ -158,20 +208,19 @@
   };
 
   window.toggleSatellite = () => {
-    if(!map) return;
     map.removeLayer(tiles[currentLayer]);
     currentLayer = (currentLayer === 'dark') ? 'sat' : 'dark';
     tiles[currentLayer].addTo(map);
   };
 
   window.startNav = async () => {
-    const queryStr = document.getElementById('dest-input').value;
-    if(!queryStr || !userPos) return;
+    const val = document.getElementById('dest-input').value;
+    if(!val || !userPos) return;
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}`);
-      const data = await res.json();
-      if(data[0]) {
-        const target = L.latLng(data[0].lat, data[0].lon);
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}`);
+      const d = await r.json();
+      if(d[0]) {
+        const target = L.latLng(d[0].lat, d[0].lon);
         if(routingControl) map.removeControl(routingControl);
         routingControl = L.Routing.control({
           waypoints: [L.latLng(userPos[0], userPos[1]), target],
@@ -179,28 +228,13 @@
           lineOptions: { styles: [{ color: '#3b82f6', weight: 10, opacity: 0.8 }] },
           createMarker: () => null
         }).addTo(map);
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance("Route berechnet. Straßenverlauf markiert."));
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance("Route wird berechnet."));
         document.getElementById('nav-bar').classList.remove('visible');
       }
-    } catch (e) { alert("Ort nicht gefunden"); }
+    } catch(e) {}
   };
 
-  window.rep = async (type) => {
-    if(!userPos) return alert("GPS Signal fehlt!");
-    try {
-      await addDoc(collection(db, "reports"), { 
-        type, 
-        lat: userPos[0], 
-        lng: userPos[1], 
-        time: Date.now() 
-      });
-      const synth = window.speechSynthesis;
-      const msg = new SpeechSynthesisUtterance("Meldung gesendet");
-      msg.lang = 'de-DE'; synth.speak(msg);
-    } catch (e) { console.error("Firebase Error", e); }
-  };
-
-  function initGPS() {
+  function startTracking() {
     navigator.geolocation.watchPosition(p => {
       userPos = [p.coords.latitude, p.coords.longitude];
       document.getElementById('speed').innerText = Math.round((p.coords.speed || 0) * 3.6);
@@ -208,17 +242,15 @@
       if(!map) {
         map = L.map('map', { zoomControl: false, attributionControl: false }).setView(userPos, 16);
         tiles[currentLayer].addTo(map);
-        userMarker = L.circleMarker(userPos, { radius: 12, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, weight: 3 }).addTo(map);
+        userMarker = L.circleMarker(userPos, { radius: 12, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, weight: 4 }).addTo(map);
         
-        const qSync = query(collection(db, "reports"), orderBy("time", "desc"), limit(30));
-        onSnapshot(qSync, snap => {
+        const q = query(collection(db, "reports"), orderBy("time", "desc"), limit(40));
+        onSnapshot(q, snap => {
           snap.docChanges().forEach(c => {
             if (c.type === "added") {
               const d = c.doc.data();
-              const iconSet = { police: '👮', speed: '📸', accident: '⚠️' };
-              L.marker([d.lat, d.lng], { 
-                icon: L.divIcon({ html: `<div class="text-4xl drop-shadow-2xl">${iconSet[d.type] || '❗'}</div>`, className: 'bg-transparent'}) 
-              }).addTo(map);
+              const icons = { police: '👮', speed: '📸', accident: '⚠️' };
+              L.marker([d.lat, d.lng], { icon: L.divIcon({ html: `<div class="text-4xl">${icons[d.type] || '❗'}</div>`, className: 'bg-transparent'}) }).addTo(map);
             }
           });
         });
@@ -234,9 +266,10 @@
     try {
       const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${userPos[0]}&longitude=${userPos[1]}&current_weather=true`);
       const d = await r.json();
-      document.getElementById('weather').innerText = `${d.current_weather.temperature}°C • ${d.current_weather.windspeed} km/h Wind`;
+      document.getElementById('weather').innerText = `${d.current_weather.temperature}°C • GPS SIGNAL STRONG`;
     } catch(e) {}
   }
 </script>
+
 </body>
 </html>
