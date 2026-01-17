@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>TS PRO - Zero Interference Fix</title>
+  <title>TS PRO - Fixed Stability Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,103 +13,101 @@
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
   <style>
-    :root { --p-blue: #3b82f6; --bg-dark: #020617; --panel: #0f172a; }
+    :root { --p-blue: #3b82f6; --bg: #000; }
     
     body, html { 
-      height: 100svh; width: 100vw; margin: 0; 
-      overflow: hidden; background: #000; color: white; 
-      font-family: 'Inter', sans-serif; 
-      position: fixed; touch-action: none;
+      height: 100%; width: 100%; margin: 0; padding: 0;
+      background: #000; color: white; overflow: hidden;
+      font-family: -apple-system, system-ui, sans-serif;
     }
 
+    /* Startbildschirm Fix */
     #start-overlay {
-      position: fixed; inset: 0; z-index: 1000000;
+      position: fixed; inset: 0; z-index: 10000;
       background: #020617; display: flex; align-items: center; justify-content: center;
     }
 
-    .app-grid { 
-      display: grid; grid-template-rows: auto 1fr auto; 
-      height: 100svh; width: 100vw; visibility: hidden; 
+    /* Grid-Struktur für absolute Sichtbarkeit */
+    .main-wrapper {
+      display: flex; flex-direction: column; height: 100vh; width: 100vw;
+      visibility: hidden; position: relative;
     }
-    .app-grid.active { visibility: visible; }
+    .main-wrapper.active { visibility: visible; }
 
-    /* Dieser Layer liegt ÜBER der Karte und fängt alle Klicks ab */
-    .ui-layer-top { 
-      z-index: 99999 !important; 
-      pointer-events: auto !important;
-      position: relative;
+    /* Karten Fix - Muss Raum einnehmen */
+    #map { 
+      flex-grow: 1; width: 100%; height: 100%; 
+      background: #111; z-index: 5;
     }
 
-    #map-container { position: relative; width: 100%; height: 100%; z-index: 1; }
-    #map { width: 100%; height: 100%; }
+    /* UI Elemente */
+    .ui-top { position: absolute; top: 0; left: 0; right: 0; z-index: 100; pointer-events: none; }
+    .ui-bottom { position: absolute; bottom: 0; left: 0; right: 0; z-index: 100; pointer-events: none; }
+    
+    .interactive { pointer-events: auto !important; }
 
     .action-btn {
-      width: 75px; height: 75px; border-radius: 22px;
+      width: 72px; height: 72px; border-radius: 20px;
       display: flex; align-items: center; justify-content: center;
       background: #1e293b; border: 2px solid rgba(255,255,255,0.1);
-      cursor: pointer !important; touch-action: manipulation !important;
-      -webkit-tap-highlight-color: transparent;
+      cursor: pointer; touch-action: manipulation;
     }
-    
-    /* Visuelles Feedback damit du siehst dass der Button gedrückt wurde */
-    .action-btn:active { 
-      transform: scale(0.9); background: #3b82f6 !important; border-color: white !important;
-    }
+    .action-btn:active { background: #3b82f6; transform: scale(0.95); }
 
     #nav-bar {
-      position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
-      width: 92%; max-width: 550px; z-index: 100000; 
-      transition: top 0.4s ease-out;
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 90%; max-width: 500px; transition: top 0.4s;
     }
-    #nav-bar.visible { top: 20px; }
+    #nav-bar.visible { top: 100px; }
 
     .leaflet-routing-container { display: none !important; }
 
+    /* Desktop/iPad Landscape */
     @media (min-width: 1024px) {
-      .app-grid { grid-template-columns: 140px 1fr; grid-template-rows: 100px 1fr; }
-      .sidebar { grid-row: 1/3; flex-direction: column !important; justify-content: center !important; gap: 2rem !important; border-right: 1px solid #1e293b;}
-      header { grid-column: 2; border-bottom: 1px solid #1e293b; }
-      #map-container { grid-column: 2; }
+      .sidebar { width: 120px; height: 100%; flex-direction: column !important; }
+      .main-wrapper { flex-direction: row; }
+      .ui-top { left: 120px; }
+      .ui-bottom { display: none; } /* In Desktop sidebar only */
     }
   </style>
 </head>
 <body>
 
 <div id="start-overlay">
-    <button id="init-btn" class="bg-blue-600 text-white font-black py-8 px-20 rounded-[40px] shadow-2xl active:scale-95 text-2xl uppercase">
-        System Starten
+    <button id="init-btn" class="bg-blue-600 px-16 py-8 rounded-[30px] font-black text-2xl uppercase shadow-2xl">
+        System Initialisieren
     </button>
 </div>
 
-<div id="nav-bar" class="bg-slate-900 border border-white/10 p-4 rounded-[32px] flex gap-3 items-center shadow-2xl ui-layer-top">
-  <input type="text" id="dest-input" placeholder="Ziel..." class="bg-black/40 w-full p-4 rounded-2xl outline-none text-white font-semibold">
-  <button onclick="startNav(event)" class="bg-blue-600 px-8 py-4 rounded-2xl font-black">Go</button>
-</div>
+<div class="main-wrapper" id="app">
+    <header class="ui-top p-6 flex justify-between items-start">
+        <div class="bg-black/60 p-4 rounded-2xl backdrop-blur-md border border-white/10 interactive">
+            <h1 class="text-2xl font-black italic text-blue-500">TS <span class="text-white">PRO</span></h1>
+            <p id="weather" class="text-[9px] font-bold opacity-60">GEOLOCATION ACTIVE</p>
+        </div>
+        <div class="bg-black/60 p-4 rounded-2xl backdrop-blur-md border border-white/10 text-center interactive min-w-[120px]">
+            <span id="speed" class="text-5xl font-black italic">0</span>
+            <span class="text-[10px] block font-bold text-blue-500">km/h</span>
+        </div>
+    </header>
 
-<div class="app-grid" id="main-app">
-  <header class="p-6 flex justify-between items-center ui-layer-top bg-slate-950">
-    <div>
-      <h1 class="text-3xl font-black italic text-blue-500">TS <span class="text-white">PRO</span></h1>
-      <p id="weather" class="text-[10px] font-bold opacity-40 uppercase">Audio Engine Ready</p>
+    <div id="nav-bar" class="bg-slate-900 p-4 rounded-3xl border border-white/20 interactive flex gap-2">
+        <input type="text" id="dest-input" placeholder="Ziel..." class="bg-black/40 w-full p-3 rounded-xl outline-none text-white">
+        <button onclick="startNav(event)" class="bg-blue-600 px-6 rounded-xl font-bold">GO</button>
     </div>
-    <div class="bg-slate-900 px-8 py-3 rounded-2xl border border-white/10">
-        <span id="speed" class="text-5xl font-black italic">0</span>
-        <span class="text-[10px] font-bold text-blue-500 uppercase ml-2">km/h</span>
-    </div>
-  </header>
 
-  <div id="map-container">
     <div id="map"></div>
-  </div>
 
-  <footer class="sidebar p-6 flex justify-around items-center ui-layer-top bg-slate-950">
-    <button onclick="toggleNav(event)" class="action-btn border-blue-500/40"><i class="fas fa-route text-blue-400 text-3xl"></i></button>
-    <button onclick="toggleSatellite(event)" class="action-btn"><i class="fas fa-globe text-slate-400 text-3xl"></i></button>
-    <button onclick="handleReport(event, 'police')" class="action-btn"><i class="fas fa-shield-halved text-blue-400 text-3xl"></i></button>
-    <button onclick="handleReport(event, 'speed')" class="action-btn"><i class="fas fa-camera text-red-500 text-3xl"></i></button>
-    <button onclick="handleReport(event, 'accident')" class="action-btn"><i class="fas fa-triangle-exclamation text-orange-400 text-3xl"></i></button>
-    <button onclick="event.stopPropagation(); window.location.href='tel:112'" class="action-btn bg-red-600/20"><i class="fas fa-phone-flip text-white text-3xl"></i></button>
-  </footer>
+    <footer class="ui-bottom p-6 flex justify-center items-center gap-4">
+        <div class="bg-black/60 p-4 rounded-[35px] backdrop-blur-md border border-white/10 flex gap-4 interactive">
+            <button onclick="toggleNav(event)" class="action-btn"><i class="fas fa-route text-blue-400 text-2xl"></i></button>
+            <button onclick="toggleSatellite(event)" class="action-btn"><i class="fas fa-globe text-slate-400 text-2xl"></i></button>
+            <button onclick="handleReport(event, 'police')" class="action-btn"><i class="fas fa-user-shield text-blue-400 text-2xl"></i></button>
+            <button onclick="handleReport(event, 'speed')" class="action-btn"><i class="fas fa-camera text-red-500 text-2xl"></i></button>
+            <button onclick="handleReport(event, 'accident')" class="action-btn"><i class="fas fa-triangle-exclamation text-orange-400 text-2xl"></i></button>
+            <button onclick="event.stopPropagation(); window.location.href='tel:112'" class="action-btn bg-red-600/20"><i class="fas fa-phone text-white text-2xl"></i></button>
+        </div>
+    </footer>
 </div>
 
 <script type="module">
@@ -136,18 +134,17 @@
   document.getElementById('init-btn').addEventListener('click', () => {
     window.speechSynthesis.speak(new SpeechSynthesisUtterance("System aktiv"));
     document.getElementById('start-overlay').style.display = 'none';
-    document.getElementById('main-app').classList.add('active');
-    startTracking();
+    document.getElementById('app').classList.add('active');
+    
+    // Karte leicht verzögert laden um Blackscreen zu verhindern
+    setTimeout(() => initSystem(), 100);
   });
 
-  // STOP PROPAGATION IST DER SCHLÜSSEL
   window.handleReport = async (e, type) => {
-    e.stopPropagation(); // Verhindert Klick auf Karte
+    e.stopPropagation();
     if(!userPos) return;
-    try {
-      await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance("Meldung gesendet"));
-    } catch(err) {}
+    await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance("Meldung erfasst"));
   };
 
   window.toggleNav = (e) => {
@@ -173,29 +170,29 @@
       if(routingControl) map.removeControl(routingControl);
       routingControl = L.Routing.control({
         waypoints: [L.latLng(userPos[0], userPos[1]), target],
-        lineOptions: { styles: [{ color: '#3b82f6', weight: 10 }] },
+        lineOptions: { styles: [{ color: '#3b82f6', weight: 10, opacity: 0.8 }] },
         createMarker: () => null
       }).addTo(map);
       document.getElementById('nav-bar').classList.remove('visible');
     }
   };
 
-  function startTracking() {
+  function initSystem() {
     navigator.geolocation.watchPosition(p => {
       userPos = [p.coords.latitude, p.coords.longitude];
       document.getElementById('speed').innerText = Math.round((p.coords.speed || 0) * 3.6);
+      
       if(!map) {
-        map = L.map('map', { zoomControl: false, attributionControl: false }).setView(userPos, 16);
+        map = L.map('map', { zoomControl: false, attributionControl: false }).setView(userPos, 15);
         tiles[currentLayer].addTo(map);
-        // UserMarker auf non-clickable setzen, damit er Buttons nicht stört
-        userMarker = L.circleMarker(userPos, { radius: 12, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, weight: 4, interactive: false }).addTo(map);
+        userMarker = L.circleMarker(userPos, { radius: 10, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, interactive: false }).addTo(map);
         
         onSnapshot(query(collection(db, "reports"), orderBy("time", "desc"), limit(40)), snap => {
           snap.docChanges().forEach(c => {
             if (c.type === "added") {
               const d = c.doc.data();
               const icons = { police: '👮', speed: '📸', accident: '⚠️' };
-              L.marker([d.lat, d.lng], { icon: L.divIcon({ html: `<div class="text-4xl">${icons[d.type] || '❗'}</div>`, className: 'bg-transparent'}) }).addTo(map);
+              L.marker([d.lat, d.lng], { icon: L.divIcon({ html: `<div class="text-3xl">${icons[d.type] || '❗'}</div>`, className: 'bg-transparent'}) }).addTo(map);
             }
           });
         });
