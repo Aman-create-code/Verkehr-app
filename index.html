@@ -2,68 +2,89 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Traffic Sweet Pro - GitHub Live</title>
+  <title>Traffic Sweet Ultimate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 
   <style>
-    #map { height: calc(100vh - 300px); border-radius: 20px; margin: 10px; border: 1px solid #1e293b; }
-    .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); }
-    .btn-action { transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); }
-    .btn-action:active { transform: scale(0.9); }
-    body { background-color: #020617; color: white; font-family: sans-serif; }
+    :root { --glass: rgba(15, 23, 42, 0.95); }
+    body { background-color: #020617; color: white; font-family: 'Inter', sans-serif; transition: background 0.3s; }
+    body.light-mode { background-color: #f1f5f9; color: #1e293b; }
+    #map { height: calc(100vh - 350px); border-radius: 24px; margin: 12px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s; }
+    .glass { background: var(--glass); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .light-mode .glass { background: rgba(255, 255, 255, 0.9); border-bottom: 1px solid rgba(0,0,0,0.1); }
+    .leaflet-routing-container { background: white; color: black; padding: 10px; border-radius: 10px; font-size: 12px; max-height: 150px; overflow: auto; }
+    .light-mode .leaflet-routing-container { border: 1px solid #ccc; }
+    #settings-panel { display: none; }
   </style>
 </head>
-<body>
+<body class="flex flex-col h-screen overflow-hidden">
 
-<div id="danger-bar" class="hidden bg-red-600 p-2 text-center font-bold animate-pulse z-[3000]">
-  ⚠️ GEFAHR IN DER NÄHE!
-</div>
-
-<header class="p-4 glass sticky top-0 z-[1000] border-b border-white/10">
-  <div class="max-w-md mx-auto flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-black italic text-blue-500 tracking-tighter">TRAFFIC SWEET</h1>
-      <p class="text-[10px] text-slate-400">LIVE COMMUNITY DASHBOARD</p>
-    </div>
+<header class="p-4 glass flex justify-between items-center z-[2000]">
+  <div>
+    <h1 class="text-2xl font-black italic text-blue-500 tracking-tighter">TRAFFIC SWEET</h1>
+  </div>
+  <div class="flex items-center gap-4">
     <div class="text-right">
-      <div class="text-2xl font-mono font-bold"><span id="speed-val">0</span> <span class="text-sm text-blue-400">km/h</span></div>
-      <div class="text-[9px] text-slate-500">DISTANZ: <span id="dist-val">0.0</span> km</div>
+      <div class="text-xl font-mono font-bold"><span id="speed-val">0</span> <small class="text-[10px] text-blue-400">KM/H</small></div>
     </div>
+    <button onclick="toggleSettings()" class="text-xl p-2 hover:rotate-90 transition-transform"><i class="fas fa-cog"></i></button>
   </div>
 </header>
 
-<div class="p-3 max-w-md mx-auto">
-  <div class="flex gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700">
-    <input id="nav-target" placeholder="Zielort eingeben..." class="flex-grow bg-transparent outline-none text-sm px-2">
-    <button onclick="startNavigation()" class="bg-blue-600 p-2 rounded-lg"><i class="fas fa-route"></i></button>
+<div id="settings-panel" class="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+  <div class="bg-slate-900 border border-slate-700 w-full max-w-xs p-6 rounded-3xl shadow-2xl">
+    <h2 class="text-xl font-bold mb-4">Einstellungen</h2>
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+        <span>Dark Mode Karte</span>
+        <input type="checkbox" id="dark-mode-toggle" checked onchange="updateTheme()" class="w-5 h-5">
+      </div>
+      <div class="flex justify-between items-center">
+        <span>Sprachwarnung</span>
+        <input type="checkbox" id="voice-toggle" checked class="w-5 h-5">
+      </div>
+    </div>
+    <button onclick="toggleSettings()" class="mt-6 w-full bg-blue-600 p-3 rounded-xl font-bold">Fertig</button>
+  </div>
+</div>
+
+<div class="p-3 max-w-md mx-auto w-full z-[1000]">
+  <div class="flex gap-2 bg-slate-900 p-2 rounded-xl border border-slate-700 shadow-xl mb-2">
+    <input id="nav-target" placeholder="Wohin willst du?" class="flex-grow bg-transparent outline-none text-sm px-2 text-white">
+    <button onclick="startNavigation()" class="bg-blue-600 px-4 py-2 rounded-lg"><i class="fas fa-location-dot"></i></button>
+  </div>
+  <div id="route-info" class="hidden text-[11px] bg-blue-600/20 p-2 rounded-lg border border-blue-500/30 flex justify-between">
+    <span>ENTFERNUNG: <b id="route-dist">-</b></span>
+    <span>ANKUNFT IN: <b id="route-time">-</b></span>
   </div>
 </div>
 
 <div id="map"></div>
 
-<footer class="p-4 glass rounded-t-[30px] border-t border-white/10 mt-auto">
+<footer class="p-4 glass rounded-t-[40px] mt-auto">
   <div class="grid grid-cols-4 gap-3 max-w-md mx-auto">
-    <button onclick="makeReport('police')" class="btn-action bg-indigo-600/20 p-3 rounded-2xl flex flex-col items-center">
-      <i class="fas fa-shield-halved text-indigo-400 text-xl mb-1"></i>
+    <button onclick="makeReport('police')" class="flex flex-col items-center bg-indigo-600/20 p-3 rounded-2xl border border-indigo-500/20 active:scale-90 transition-all">
+      <i class="fas fa-shield-alt text-indigo-400 text-xl mb-1"></i>
       <span class="text-[9px] font-bold">POLIZEI</span>
     </button>
-    <button onclick="makeReport('speed')" class="btn-action bg-red-600/20 p-3 rounded-2xl flex flex-col items-center">
+    <button onclick="makeReport('speed')" class="flex flex-col items-center bg-red-600/20 p-3 rounded-2xl border border-red-500/20 active:scale-90 transition-all">
       <i class="fas fa-camera text-red-400 text-xl mb-1"></i>
       <span class="text-[9px] font-bold">BLITZER</span>
     </button>
-    <button onclick="makeReport('accident')" class="btn-action bg-orange-600/20 p-3 rounded-2xl flex flex-col items-center">
+    <button onclick="makeReport('accident')" class="flex flex-col items-center bg-orange-600/20 p-3 rounded-2xl border border-orange-500/20 active:scale-90 transition-all">
       <i class="fas fa-car-burst text-orange-400 text-xl mb-1"></i>
       <span class="text-[9px] font-bold">UNFALL</span>
     </button>
-    <button onclick="makeReport('traffic')" class="btn-action bg-amber-500/20 p-3 rounded-2xl flex flex-col items-center text-amber-400">
-      <i class="fas fa-traffic-light text-xl mb-1"></i>
+    <button onclick="makeReport('traffic')" class="flex flex-col items-center bg-amber-500/20 p-3 rounded-2xl border border-amber-500/20 active:scale-90 transition-all">
+      <i class="fas fa-traffic text-amber-400 text-xl mb-1"></i>
       <span class="text-[9px] font-bold">STAU</span>
     </button>
   </div>
@@ -71,9 +92,8 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
-  // DEINE CONFIG
   const firebaseConfig = {
     apiKey: "AIzaSyBYAb-92E5V94UhNVAQl9niTAPkBOBNOjc",
     authDomain: "verkehr-725d5.firebaseapp.com",
@@ -86,34 +106,38 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  let map, userPos, userMarker, routingControl;
+  let map, userPos, userMarker, routingControl, tileLayer;
   let markers = {};
-  let totalDist = 0;
-  let lastPos = null;
+  let warnedPoints = new Set();
+  const icons = { police: '🚓', speed: '📸', accident: '💥', traffic: '🚗' };
 
-  // Icons Zuordnung
-  const emoji = { police: '🚓', speed: '📸', accident: '💥', traffic: '🚗' };
+  // --- UI FUNKTIONEN ---
+  window.toggleSettings = () => {
+    const el = document.getElementById('settings-panel');
+    el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
+  };
 
-  // 1. Standort-Logik
+  window.updateTheme = () => {
+    const isDark = document.getElementById('dark-mode-toggle').checked;
+    document.body.classList.toggle('light-mode', !isDark);
+    if (tileLayer) {
+      map.removeLayer(tileLayer);
+      const url = isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      tileLayer = L.tileLayer(url).addTo(map);
+    }
+  };
+
+  // --- GPS ---
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(pos => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      userPos = [lat, lng];
-
-      // Speed & Distanz
-      const speedKmh = Math.round((pos.coords.speed || 0) * 3.6);
-      document.getElementById('speed-val').innerText = speedKmh;
-
-      if (lastPos) {
-        const d = L.latLng(lat, lng).distanceTo(L.latLng(lastPos[0], lastPos[1]));
-        totalDist += d / 1000;
-        document.getElementById('dist-val').innerText = totalDist.toFixed(2);
-      }
-      lastPos = userPos;
+      userPos = [pos.coords.latitude, pos.coords.longitude];
+      document.getElementById('speed-val').innerText = Math.round((pos.coords.speed || 0) * 3.6);
 
       if (!map) {
-        initMap(userPos);
+        map = L.map('map', { zoomControl: false }).setView(userPos, 15);
+        tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        userMarker = L.circleMarker(userPos, { radius: 10, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
+        loadReports();
       } else {
         userMarker.setLatLng(userPos);
         checkDanger(userPos);
@@ -121,82 +145,67 @@
     }, null, { enableHighAccuracy: true });
   }
 
-  function initMap(pos) {
-    map = L.map('map', { zoomControl: false }).setView(pos, 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    userMarker = L.circleMarker(pos, { radius: 10, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
-    listenToDatabase();
-  }
-
-  // 2. Datenbank-Funktionen (Global verfügbar machen)
+  // --- FIREBASE ACTIONS ---
   window.makeReport = async (type) => {
-    if (!userPos) return alert("Warte auf GPS...");
-    try {
-      await addDoc(collection(db, "reports"), {
-        type, lat: userPos[0], lng: userPos[1], votes: 1, time: Date.now()
-      });
-      console.log("Gemeldet: " + type);
-    } catch (e) { alert("Fehler: " + e.message); }
+    if (!userPos) return;
+    await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], votes: 1, time: Date.now() });
   };
 
-  window.voteReport = async (id) => {
-    const docRef = doc(db, "reports", id);
-    await updateDoc(docRef, { votes: increment(1) });
+  window.vote = async (id) => {
+    await updateDoc(doc(db, "reports", id), { votes: increment(1) });
   };
 
-  function listenToDatabase() {
+  function loadReports() {
     onSnapshot(collection(db, "reports"), snap => {
       snap.docChanges().forEach(change => {
         const d = change.doc.data();
         const id = change.doc.id;
-
-        if (change.type === "removed") {
-          if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
-        } else {
-          // Nur Anzeigen wenn jünger als 60 Min
-          if (Date.now() - d.time > 3600000) return;
-
-          if (markers[id]) {
-            markers[id].setPopupContent(`<b>${d.type.toUpperCase()}</b><br>Votes: ${d.votes}`);
-          } else {
-            const m = L.marker([d.lat, d.lng], {
-              icon: L.divIcon({ html: `<div class="text-3xl">${emoji[d.type]}</div>`, className: 'bg-transparent' })
-            }).addTo(map);
-            m.bindPopup(`
-              <div class="text-black">
-                <b class="uppercase">${d.type}</b><br>
-                Bestätigungen: ${d.votes}<br>
-                <button onclick="voteReport('${id}')" class="bg-blue-600 text-white px-2 py-1 rounded mt-2 text-[10px]">Bestätigen</button>
-              </div>
-            `);
-            markers[id] = m;
+        if (Date.now() - d.time < 3600000) {
+          if (!markers[id]) {
+            markers[id] = L.marker([d.lat, d.lng], {
+              icon: L.divIcon({ html: `<div class="text-3xl">${icons[d.type]}</div>`, className: 'bg-transparent' })
+            }).addTo(map).bindPopup(`<div class="text-black"><b>${d.type.toUpperCase()}</b><br><button onclick="vote('${id}')" class="bg-blue-600 text-white px-2 py-1 rounded mt-2">Bestätigen</button></div>`);
           }
         }
       });
     });
   }
 
-  // 3. Navigation & Gefahr
+  // --- NAVIGATION ---
   window.startNavigation = async () => {
-    const query = document.getElementById('nav-target').value;
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    const target = document.getElementById('nav-target').value;
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(target)}`);
     const data = await res.json();
     if (data[0]) {
+      const targetPos = [data[0].lat, data[0].lon];
       if (routingControl) map.removeControl(routingControl);
       routingControl = L.Routing.control({
-        waypoints: [L.latLng(userPos[0], userPos[1]), L.latLng(data[0].lat, data[0].lon)],
-        createMarker: () => null,
-        lineOptions: { styles: [{ color: '#3b82f6', weight: 6 }] }
+        waypoints: [L.latLng(userPos[0], userPos[1]), L.latLng(targetPos[0], targetPos[1])],
+        lineOptions: { styles: [{ color: '#3b82f6', weight: 6 }] },
+        createMarker: () => null
+      }).on('routesfound', function(e) {
+        const route = e.routes[0];
+        document.getElementById('route-info').classList.remove('hidden');
+        document.getElementById('route-dist').innerText = (route.summary.totalDistance / 1000).toFixed(1) + " km";
+        document.getElementById('route-time').innerText = Math.round(route.summary.totalTime / 60) + " Min";
       }).addTo(map);
     }
   };
 
+  // --- GEFAHRENSYSTEM ---
   function checkDanger(pos) {
-    let close = false;
-    Object.values(markers).forEach(m => {
-      if (map.distance(pos, m.getLatLng()) < 500) close = true;
+    Object.keys(markers).forEach(id => {
+      const m = markers[id];
+      const dist = map.distance(pos, m.getLatLng());
+      if (dist < 500 && !warnedPoints.has(id)) {
+        if (document.getElementById('voice-toggle').checked) {
+          const speech = new SpeechSynthesisUtterance("Achtung, Gefahr in fünfhundert Metern.");
+          speech.lang = 'de-DE';
+          window.speechSynthesis.speak(speech);
+        }
+        warnedPoints.add(id);
+      }
     });
-    document.getElementById('danger-bar').classList.toggle('hidden', !close);
   }
 </script>
 
