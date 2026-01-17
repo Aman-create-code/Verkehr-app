@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Traffic Sweet Pro - Fix</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Traffic Sweet Ultimate AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -11,74 +11,88 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    body { background: #020617; color: white; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
-    #map { height: calc(100vh - 350px); border-radius: 30px; margin: 15px; border: 2px solid rgba(59, 130, 246, 0.3); z-index: 1; }
+    :root { --accent: #3b82f6; }
+    body { background: #020617; color: white; font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; transition: 0.4s; }
     
-    /* Ripple Effekt für Buttons */
-    .btn-ripple {
-      position: relative;
-      overflow: hidden;
-      transition: all 0.2s ease;
-    }
-    .btn-ripple:active {
-      transform: scale(0.9);
-      background-color: rgba(59, 130, 246, 0.4) !important;
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+    /* Responsive Layout Logik */
+    .app-container { display: flex; flex-direction: column; height: 100vh; }
+    
+    @media (min-width: 768px) { /* iPad / Tablet Modus */
+      .app-container { flex-direction: row; }
+      .side-nav { width: 100px; height: 100vh; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); border-top: none; }
+      #map { flex-grow: 1; height: 95vh !important; margin: 10px; }
     }
 
-    /* Toast Meldung Animation */
-    #notification {
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      z-index: 5000;
-    }
-    #notification.show { transform: translateX(-50%) translateY(0); }
+    /* Karte Styling */
+    #map { height: calc(100vh - 350px); border-radius: 25px; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border: 2px solid rgba(255,255,255,0.05); }
+    
+    /* Neon & Light Modes */
+    body.light { background: #f8fafc; color: #0f172a; --accent: #2563eb; }
+    body.neon { background: #000; color: #0ff; --accent: #0ff; }
+    .neon #map { border-color: #0ff; box-shadow: 0 0 15px #0ff3; }
 
-    .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px); }
+    /* Animationen */
+    .pulse-danger { animation: danger-blink 1s infinite; }
+    @keyframes danger-blink { 0% { box-shadow: inset 0 0 0px red; } 50% { box-shadow: inset 0 0 30px red; } 100% { box-shadow: inset 0 0 0px red; } }
+    
+    .btn-click:active { transform: scale(0.85); background: var(--accent) !important; color: white !important; }
+    
+    .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px); }
+    .light .glass { background: rgba(255, 255, 255, 0.8); }
+    
+    #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); transition: 0.5s; z-index: 9999; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
   </style>
 </head>
-<body class="flex flex-col">
+<body class="dark">
 
-<div id="notification" class="glass border border-blue-500/50 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl">
-  <div class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-  <span id="notif-text" class="font-bold text-sm uppercase tracking-widest">Ereignis gemeldet</span>
+<div id="toast" class="glass border border-blue-500 px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4">
+    <div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+    <span id="toast-text" class="font-black uppercase tracking-widest text-sm">System Bereit</span>
 </div>
 
-<header class="p-4 flex justify-between items-center z-[500]">
-  <h1 class="text-2xl font-black italic text-blue-500 tracking-tighter">TS PRO</h1>
-  <div class="bg-blue-600/20 px-4 py-2 rounded-2xl border border-blue-500/50">
-    <span id="speed" class="text-2xl font-black">0</span> <small class="text-xs">km/h</small>
-  </div>
-</header>
+<div class="app-container">
+    <header class="p-6 flex justify-between items-center z-50">
+        <div>
+            <h1 class="text-3xl font-black italic tracking-tighter" style="color: var(--accent)">TS ULTIMATE</h1>
+            <p id="weather-info" class="text-[10px] font-bold opacity-50 uppercase tracking-widest">Lade Wetter...</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="text-right glass p-3 rounded-2xl border border-white/10">
+                <span id="speed" class="text-3xl font-black">0</span>
+                <span class="text-[10px] block opacity-50 -mt-1 font-bold">KM/H</span>
+            </div>
+            <button id="btn-settings" class="text-2xl hover:rotate-90 transition-transform"><i class="fas fa-cog"></i></button>
+        </div>
+    </header>
 
-<div id="map"></div>
+    <div id="map" class="shadow-2xl"></div>
 
-<div class="px-4 mb-4">
-    <div class="flex gap-2 bg-slate-900/80 p-3 rounded-2xl border border-white/10 glass shadow-2xl">
-        <input id="target" placeholder="Wohin fahren wir?" class="flex-grow bg-transparent outline-none px-2 text-sm text-white">
-        <button id="nav-btn" class="bg-blue-600 w-12 h-10 rounded-xl flex items-center justify-center btn-ripple">
-            <i class="fas fa-location-arrow"></i>
-        </button>
+    <footer class="side-nav glass p-6 flex justify-around items-center border-t border-white/5 rounded-t-[40px] lg:rounded-none">
+        <button id="rep-police" class="btn-click bg-blue-600/10 p-5 rounded-3xl border border-blue-500/20"><i class="fas fa-user-shield text-blue-400 text-2xl"></i></button>
+        <button id="rep-speed" class="btn-click bg-red-600/10 p-5 rounded-3xl border border-red-500/20"><i class="fas fa-camera text-red-400 text-2xl"></i></button>
+        <button id="rep-accident" class="btn-click bg-orange-600/10 p-5 rounded-3xl border border-orange-500/20"><i class="fas fa-car-burst text-orange-400 text-2xl"></i></button>
+        <button id="rep-sos" class="btn-click bg-white/5 p-5 rounded-3xl border border-white/10"><i class="fas fa-phone-alt text-white text-2xl"></i></button>
+    </footer>
+</div>
+
+<div id="settings-modal" class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-md hidden items-center justify-center p-6">
+    <div class="bg-slate-900 border border-white/10 p-8 rounded-[40px] w-full max-w-sm">
+        <h2 class="text-3xl font-black mb-8 italic">KONFIGURATION</h2>
+        <div class="space-y-6">
+            <div class="flex justify-between items-center"><span>Design</span>
+                <select id="theme-select" class="bg-white/5 p-2 rounded-xl outline-none">
+                    <option value="dark">Dark Mode</option>
+                    <option value="light">Light Mode</option>
+                    <option value="neon">Neon Blue</option>
+                </select>
+            </div>
+            <div class="flex justify-between items-center"><span>Sprach-Feedback</span><input type="checkbox" id="voice-check" checked class="w-6 h-6"></div>
+            <div class="flex justify-between items-center"><span>Karte verbergen</span><input type="checkbox" id="hide-map" class="w-6 h-6"></div>
+        </div>
+        <button id="close-settings" class="mt-10 w-full bg-blue-600 p-5 rounded-3xl font-black uppercase tracking-widest">Speichern</button>
     </div>
 </div>
-
-<footer class="glass p-6 rounded-t-[45px] mt-auto grid grid-cols-4 gap-4">
-  <button id="btn-police" class="btn-ripple bg-blue-600/20 p-5 rounded-3xl border border-blue-500/30 flex items-center justify-center">
-    <i class="fas fa-user-shield text-blue-400 text-2xl"></i>
-  </button>
-  <button id="btn-speed" class="btn-ripple bg-red-600/20 p-5 rounded-3xl border border-red-500/30 flex items-center justify-center">
-    <i class="fas fa-camera text-red-400 text-2xl"></i>
-  </button>
-  <button id="btn-accident" class="btn-ripple bg-orange-600/20 p-5 rounded-3xl border border-orange-500/30 flex items-center justify-center">
-    <i class="fas fa-car-burst text-orange-400 text-2xl"></i>
-  </button>
-  <button id="btn-traffic" class="btn-ripple bg-amber-500/20 p-5 rounded-3xl border border-amber-500/30 flex items-center justify-center">
-    <i class="fas fa-traffic-light text-amber-400 text-2xl"></i>
-  </button>
-</footer>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
@@ -88,72 +102,101 @@
     apiKey: "AIzaSyBYAb-92E5V94UhNVAQl9niTAPkBOBNOjc",
     authDomain: "verkehr-725d5.firebaseapp.com",
     projectId: "verkehr-725d5",
-    storageBucket: "verkehr-725d5.firebasestorage.app",
-    messagingSenderId: "22824354784",
     appId: "1:22824354784:web:90c034d1225dc6837ae185"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  let map, userPos, userMarker, tiles;
 
-  let map, userPos, userMarker;
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  // Benachrichtigungs-Funktion
-  function showToast(text) {
-    const toast = document.getElementById('notification');
-    document.getElementById('notif-text').innerText = text;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+  function playPing() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
   }
 
-  // GPS Initialisierung
+  function showToast(m) {
+    document.getElementById('toast-text').innerText = m;
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
   navigator.geolocation.watchPosition(p => {
     userPos = [p.coords.latitude, p.coords.longitude];
     document.getElementById('speed').innerText = Math.round((p.coords.speed || 0) * 3.6);
     
     if(!map) {
       map = L.map('map', { zoomControl: false }).setView(userPos, 16);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-      userMarker = L.circleMarker(userPos, { radius: 10, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
+      tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+      userMarker = L.circleMarker(userPos, { radius: 12, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
       
-      // Live-Updates der Marker
       onSnapshot(collection(db, "reports"), snap => {
-        snap.docChanges().forEach(change => {
-          if (change.type === "added") {
-            const d = change.doc.data();
-            const icon = { police: '👮', speed: '📸', accident: '⚠️', traffic: '🚗' };
-            L.marker([d.lat, d.lng], {
-              icon: L.divIcon({ html: `<div class="text-3xl animate-bounce">${icon[d.type] || '❗'}</div>`, className: 'bg-transparent'})
-            }).addTo(map);
+        snap.docChanges().forEach(c => {
+          if (c.type === "added") {
+            const d = c.doc.data();
+            const emoji = { police: '👮', speed: '📸', accident: '⚠️' };
+            L.marker([d.lat, d.lng], { icon: L.divIcon({ html: `<div class="text-3xl">${emoji[d.type] || '❗'}</div>`, className: 'bg-transparent'}) }).addTo(map);
+            checkProximity(d);
           }
         });
       });
+      getWeather(userPos);
     } else {
       userMarker.setLatLng(userPos);
     }
   }, null, { enableHighAccuracy: true });
 
-  // Event Listener für Buttons (FIX!)
-  async function sendReport(type, label) {
-    if(!userPos) return showToast("Warte auf GPS...");
-    try {
-      await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
-      showToast(label + " gemeldet!");
-      // Sprachausgabe
-      const msg = new SpeechSynthesisUtterance(label + " wurde erfolgreich gemeldet.");
-      msg.lang = 'de-DE';
-      window.speechSynthesis.speak(msg);
-    } catch(e) {
-      showToast("Fehler!");
+  async function getWeather(pos) {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos[0]}&longitude=${pos[1]}&current_weather=true`);
+    const d = await r.json();
+    document.getElementById('weather-info').innerText = `${d.current_weather.temperature}°C • ${d.current_weather.windspeed} km/h Wind`;
+  }
+
+  function checkProximity(report) {
+    if(!userPos) return;
+    const dist = map.distance(userPos, [report.lat, report.lng]);
+    if(dist < 500) {
+        document.body.classList.add('pulse-danger');
+        if(document.getElementById('voice-check').checked) {
+            const s = new SpeechSynthesisUtterance("Achtung, Gefahr in fünfhundert Metern.");
+            s.lang = 'de-DE'; window.speechSynthesis.speak(s);
+        }
+        setTimeout(() => document.body.classList.remove('pulse-danger'), 5000);
     }
   }
 
-  // Buttons manuell binden (Damit sie im Modul funktionieren)
-  document.getElementById('btn-police').onclick = () => sendReport('police', 'Polizei');
-  document.getElementById('btn-speed').onclick = () => sendReport('speed', 'Blitzer');
-  document.getElementById('btn-accident').onclick = () => sendReport('accident', 'Unfall');
-  document.getElementById('btn-traffic').onclick = () => sendReport('traffic', 'Stau');
+  const send = async (type, label) => {
+    playPing();
+    await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
+    showToast(label + " GEMELDET");
+  };
 
+  document.getElementById('rep-police').onclick = () => send('police', 'POLIZEI');
+  document.getElementById('rep-speed').onclick = () => send('speed', 'BLITZER');
+  document.getElementById('rep-accident').onclick = () => send('accident', 'UNFALL');
+  document.getElementById('rep-sos').onclick = () => window.location.href = "tel:112";
+
+  document.getElementById('btn-settings').onclick = () => document.getElementById('settings-modal').style.display = 'flex';
+  document.getElementById('close-settings').onclick = () => document.getElementById('settings-modal').style.display = 'none';
+
+  document.getElementById('theme-select').onchange = (e) => {
+    const t = e.target.value;
+    document.body.className = t;
+    map.removeLayer(tiles);
+    let url = t === 'light' ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    tiles = L.tileLayer(url).addTo(map);
+  };
+
+  document.getElementById('hide-map').onchange = (e) => {
+    document.getElementById('map').style.opacity = e.target.checked ? '0' : '1';
+    document.getElementById('map').style.transform = e.target.checked ? 'scale(0.8)' : 'scale(1)';
+  };
 </script>
 </body>
 </html>
