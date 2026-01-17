@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>TS PRO - Live Verification</title>
+  <title>TS PRO - Full System</title>
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
   <style>
     body { background: #020617; color: white; font-family: sans-serif; overflow: hidden; height: 100vh; width: 100vw; margin: 0; position: fixed; }
@@ -25,6 +28,9 @@
     .clickable { pointer-events: auto; }
     .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
     
+    /* Routing Container verstecken (wir wollen nur die Linie auf der Karte) */
+    .leaflet-routing-container { display: none !important; }
+
     .leaflet-popup-content-wrapper { background: #0f172a; color: white; border: 1px solid #3b82f6; border-radius: 15px; }
     .leaflet-popup-tip { background: #3b82f6; }
 
@@ -38,7 +44,7 @@
 
 <div id="start-screen">
     <h1 class="text-6xl font-black italic text-blue-500 mb-2 tracking-tighter">TS PRO</h1>
-    <p class="text-blue-300 font-bold mb-8 uppercase text-xs tracking-[0.3em]">Live Verification Mode</p>
+    <p class="text-blue-300 font-bold mb-8 uppercase text-xs tracking-[0.3em]">Advanced Navigation</p>
     <button id="start-btn" class="clickable bg-blue-600 text-white font-bold py-5 px-14 rounded-full text-2xl shadow-2xl btn-active">START</button>
 </div>
 
@@ -53,6 +59,15 @@
             <span id="speed" class="text-2xl font-black text-white">0</span> <small class="text-xs text-blue-400">km/h</small>
         </div>
     </header>
+
+    <div class="px-4 w-full mt-4">
+        <div class="flex gap-2 glass p-2 rounded-2xl border border-white/10 shadow-2xl clickable">
+            <input id="dest" type="text" placeholder="Ziel eingeben..." class="flex-grow bg-transparent outline-none px-3 text-white font-medium">
+            <button id="go-btn" class="bg-blue-600 w-12 h-11 rounded-xl flex items-center justify-center btn-active text-white">
+                <i class="fas fa-route text-xl"></i>
+            </button>
+        </div>
+    </div>
 
     <footer class="glass p-6 rounded-t-[45px] grid grid-cols-4 gap-3 clickable bg-slate-900/95 border-t border-blue-500/20">
         <button id="rep-police" class="bg-blue-900/40 p-4 rounded-3xl border border-blue-500/30 flex flex-col items-center justify-center gap-1">
@@ -93,7 +108,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  let map, userPos, userMarker;
+  let map, userPos, userMarker, routingControl;
   let activeMarkers = {};
 
   document.getElementById('start-btn').onclick = () => {
@@ -181,6 +196,27 @@
         });
         showMsg(name + " gemeldet!");
     } catch (e) { showMsg("Fehler!"); }
+  };
+
+  // NAVI LOGIK (Ziele suchen)
+  document.getElementById('go-btn').onclick = () => {
+    const q = document.getElementById('dest').value;
+    if(!q || !userPos) return;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
+      .then(r => r.json()).then(d => {
+        if(d[0]) {
+          if(routingControl) map.removeControl(routingControl);
+          routingControl = L.Routing.control({
+            waypoints: [L.latLng(userPos[0], userPos[1]), L.latLng(d[0].lat, d[0].lon)],
+            createMarker: () => null,
+            lineOptions: { styles: [{color: '#3b82f6', weight: 6}] },
+            addWaypoints: false
+          }).addTo(map);
+          showMsg("Navi startet...");
+        } else {
+            showMsg("Ziel nicht gefunden");
+        }
+      });
   };
 
   navigator.geolocation.watchPosition(p => {
