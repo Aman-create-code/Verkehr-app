@@ -3,8 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>TS PRO - Live Verification</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TS PRO">
+  
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -17,7 +25,6 @@
     .clickable { pointer-events: auto; }
     .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
     
-    /* Popup Style */
     .leaflet-popup-content-wrapper { background: #0f172a; color: white; border: 1px solid #3b82f6; border-radius: 15px; }
     .leaflet-popup-tip { background: #3b82f6; }
 
@@ -68,7 +75,7 @@
 </div>
 
 <div id="toast" class="glass border border-blue-500 px-6 py-3 rounded-full shadow-2xl bg-slate-900">
-  <span id="toast-msg" class="font-bold uppercase text-xs text-blue-400">Meldung gesendet!</span>
+  <span id="toast-msg" class="font-bold uppercase text-xs text-blue-400">Bereit</span>
 </div>
 
 <script type="module">
@@ -87,7 +94,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   let map, userPos, userMarker;
-  let activeMarkers = {}; // Speichert Marker-Objekte, um sie löschen zu können
+  let activeMarkers = {};
 
   document.getElementById('start-btn').onclick = () => {
     document.getElementById('start-screen').classList.add('hidden');
@@ -99,7 +106,6 @@
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     userMarker = L.circleMarker(pos, { radius: 9, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
 
-    // Echtzeit-Überwachung der Firebase
     onSnapshot(collection(db, "reports"), (snap) => {
         const now = Date.now();
         snap.docChanges().forEach(change => {
@@ -110,7 +116,6 @@
             if (change.type === "removed") {
                 removeMarker(id);
             } else {
-                // Nur anzeigen, wenn jünger als 5 Minuten (300.000 ms)
                 if (now - timestamp < 300000) {
                     updateOrAddMarker(id, data);
                 } else {
@@ -120,7 +125,6 @@
         });
     });
 
-    // Alle 30 Sekunden die Karte prüfen, um abgelaufene Marker lokal zu löschen
     setInterval(checkExpirations, 30000);
   }
 
@@ -128,18 +132,15 @@
     const emoji = { police: '👮', speed: '📸', accident: '⚠️', traffic: '🚗' };
     const label = { police: 'Polizei', speed: 'Blitzer', accident: 'Unfall', traffic: 'Stau' };
     
-    // Falls Marker existiert, erst entfernen
     removeMarker(id);
 
     const marker = L.marker([data.lat, data.lng], {
         icon: L.divIcon({ html: `<div class="text-3xl">${emoji[data.type]}</div>`, className: 'bg-transparent'})
     }).addTo(map);
 
-    // Popup mit "Noch da?" Button
     const popupContent = `
         <div class="text-center p-2">
             <div class="font-bold text-lg mb-1">${label[data.type]}</div>
-            <div class="text-[10px] text-gray-400 mb-3">Gesehen vor wenigen Minuten</div>
             <button onclick="window.verifyReport('${id}')" class="bg-blue-600 text-white text-[10px] font-bold py-2 px-4 rounded-full uppercase">Noch da?</button>
         </div>
     `;
@@ -163,18 +164,13 @@
     }
   }
 
-  // Diese Funktion wird aufgerufen, wenn jemand auf "Noch da?" klickt
   window.verifyReport = async (id) => {
     try {
         const reportRef = doc(db, "reports", id);
-        await updateDoc(reportRef, {
-            createdAt: serverTimestamp() // Setzt die Zeit auf "jetzt" zurück -> neue 5 Minuten
-        });
+        await updateDoc(reportRef, { createdAt: serverTimestamp() });
         showMsg("Zeit verlängert!");
         map.closePopup();
-    } catch (e) {
-        showMsg("Fehler!");
-    }
+    } catch (e) { showMsg("Fehler!"); }
   };
 
   const send = async (type, name) => {
