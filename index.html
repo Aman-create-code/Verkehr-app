@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Traffic Sweet Ultimate - Final Fix</title>
+  <title>Traffic Sweet - iPad Fix</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,25 +11,32 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    /* Verhindert Scrollen komplett */
+    /* Absoluter Scroll-Stopp */
     html, body { 
-      height: 100%; 
+      height: 100svh; 
+      width: 100vw;
       margin: 0; 
       padding: 0; 
       overflow: hidden; 
       background: #020617; 
-      touch-action: none;
     }
 
-    /* Layout Container */
-    .main-app {
+    /* Der Haupt-Container nutzt Flexbox für die Aufteilung */
+    .app-root {
       display: flex;
       flex-direction: column;
-      height: 100vh; /* Standard-Fallback */
-      height: 100svh; /* Modernes Handy-Maß */
+      height: 100%;
+      width: 100%;
     }
 
-    /* Karte bekommt den Restplatz */
+    /* iPad / Desktop: Buttons an die Seite */
+    @media (min-width: 1024px) {
+      .app-root { flex-direction: row; }
+      .header-area { width: 100%; position: absolute; top: 0; left: 0; z-index: 1000; }
+      .side-nav { width: 100px; height: 100%; flex-direction: column !important; border-left: 1px solid rgba(255,255,255,0.1); }
+      #map { height: 100% !important; }
+    }
+
     #map { 
       flex: 1; 
       width: 100%;
@@ -38,75 +45,77 @@
 
     .glass { 
       background: rgba(15, 23, 42, 0.95); 
-      backdrop-filter: blur(15px); 
-      border-top: 1px solid rgba(255,255,255,0.1); 
+      backdrop-filter: blur(20px); 
+      -webkit-backdrop-filter: blur(20px);
     }
 
     .btn-report {
-      transition: transform 0.1s active;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      transition: all 0.2s;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
     }
-    .btn-report:active {
-      transform: scale(0.85);
-      background-color: #3b82f6 !important;
-    }
+    .btn-report:active { transform: scale(0.8); background-color: #3b82f6 !important; }
 
-    /* iPad Landscape Optimierung */
-    @media (min-width: 1024px) {
-      .main-app { flex-direction: row; }
-      #map { order: 2; }
-      header { order: 1; width: 250px; height: 100%; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); }
-      footer { order: 3; width: 120px; height: 100%; flex-direction: column !important; border-top: none; border-left: 1px solid rgba(255,255,255,0.1); }
-    }
+    /* Pulsierender Blitzer-Effekt */
+    .hazard-pulse { animation: hazard 1.5s infinite; }
+    @keyframes hazard { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
   </style>
 </head>
 <body>
 
-<div class="main-app">
-  <header class="p-4 flex justify-between items-center glass z-[100]">
-    <div>
-      <h1 class="text-xl font-black italic text-blue-500 tracking-tighter uppercase">TS Ultimate</h1>
-      <div id="status" class="text-[9px] font-bold text-green-500 uppercase">● Live Sync</div>
+<div class="app-root">
+  <header class="header-area p-4 glass border-b border-white/5 flex justify-between items-center z-[1000]">
+    <div class="flex flex-col">
+      <h1 class="text-xl font-black italic text-blue-500 tracking-tighter leading-none">TS PRO</h1>
+      <span id="weather" class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Wetter lädt...</span>
     </div>
+    
     <div class="flex items-center gap-4">
-      <div class="text-center bg-blue-600/20 px-4 py-1 rounded-xl border border-blue-500/30">
-        <span id="speed" class="text-2xl font-black">0</span>
-        <span class="text-[8px] block -mt-1 opacity-50 font-bold uppercase">km/h</span>
+      <div class="bg-blue-600/20 px-4 py-1 rounded-xl border border-blue-500/30 text-center">
+        <span id="speed" class="text-3xl font-black">0</span>
+        <span class="text-[8px] block -mt-1 font-bold opacity-60 uppercase">km/h</span>
       </div>
-      <button onclick="document.getElementById('modal').style.display='flex'" class="p-2 bg-white/5 rounded-xl"><i class="fas fa-cog"></i></button>
+      <button onclick="toggleSettings()" class="text-xl p-2 text-slate-300"><i class="fas fa-cog"></i></button>
     </div>
   </header>
 
   <div id="map"></div>
 
-  <footer class="p-4 glass flex justify-around items-center gap-3 z-[100]">
-    <button onclick="doReport('police')" class="btn-report bg-blue-600/20 w-16 h-16 rounded-2xl border border-blue-500/30 flex items-center justify-center">
-      <i class="fas fa-user-shield text-blue-400 text-2xl"></i>
+  <footer class="side-nav glass p-4 flex justify-around items-center gap-4 z-[1000]">
+    <button onclick="send('police')" class="btn-report bg-blue-600/20 border border-blue-500/30">
+        <i class="fas fa-user-shield text-blue-400 text-2xl"></i>
     </button>
-    <button onclick="doReport('speed')" class="btn-report bg-red-600/20 w-16 h-16 rounded-2xl border border-red-500/30 flex items-center justify-center">
-      <i class="fas fa-camera text-red-400 text-2xl"></i>
+    <button onclick="send('speed')" class="btn-report bg-red-600/20 border border-red-500/30 hazard-pulse">
+        <i class="fas fa-camera text-red-400 text-2xl"></i>
     </button>
-    <button onclick="doReport('accident')" class="btn-report bg-orange-600/20 w-16 h-16 rounded-2xl border border-orange-500/30 flex items-center justify-center">
-      <i class="fas fa-car-burst text-orange-400 text-2xl"></i>
+    <button onclick="send('accident')" class="btn-report bg-orange-600/20 border border-orange-500/30">
+        <i class="fas fa-car-burst text-orange-400 text-2xl"></i>
     </button>
-    <button onclick="window.location.href='tel:112'" class="btn-report bg-white/5 w-16 h-16 rounded-2xl border border-white/20 flex items-center justify-center">
-      <i class="fas fa-phone-alt text-white text-2xl"></i>
+    <button onclick="window.location.href='tel:112'" class="btn-report bg-white/5 border border-white/20">
+        <i class="fas fa-phone-alt text-white text-2xl"></i>
     </button>
   </footer>
 </div>
 
-<div id="modal" class="fixed inset-0 z-[5000] bg-black/90 hidden items-center justify-center p-6">
-    <div class="bg-slate-900 border border-white/10 p-8 rounded-[40px] w-full max-w-sm">
-      <h2 class="text-2xl font-black mb-6">SETUP</h2>
-      <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <span>Hell-Modus</span>
-          <input type="checkbox" id="light-toggle" class="w-6 h-6">
+<div id="settings-modal" class="fixed inset-0 z-[5000] bg-black/95 hidden items-center justify-center p-6">
+    <div class="bg-slate-900 p-8 rounded-[40px] w-full max-w-sm border border-white/10 shadow-2xl">
+        <h2 class="text-3xl font-black mb-8 italic">SETUP</h2>
+        <div class="space-y-6">
+            <div class="flex justify-between items-center">
+                <span>Ghost-Mode (Karte aus)</span>
+                <input type="checkbox" id="ghost-toggle" class="w-6 h-6">
+            </div>
+            <div class="flex justify-between items-center">
+                <span>Sprachwarnung</span>
+                <input type="checkbox" id="voice-toggle" checked class="w-6 h-6">
+            </div>
         </div>
-        <div class="text-xs opacity-50">iPad Modus aktiviert sich automatisch bei Drehung.</div>
-      </div>
-      <button onclick="document.getElementById('modal').style.display='none'" class="mt-8 w-full bg-blue-600 p-4 rounded-2xl font-bold">SCHLIESSEN</button>
+        <button onclick="toggleSettings()" class="mt-10 w-full bg-blue-600 p-4 rounded-2xl font-black uppercase">Fertig</button>
     </div>
 </div>
 
@@ -123,25 +132,33 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  let map, userPos, userMarker, tiles;
+  let map, userPos, userMarker;
 
-  // Global für Buttons verfügbar machen
-  window.doReport = async (type) => {
-    if(!userPos) return alert("Warte auf GPS...");
-    try {
-      await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
-      const s = new SpeechSynthesisUtterance("Meldung gesendet");
-      s.lang = 'de-DE'; window.speechSynthesis.speak(s);
-    } catch(e) { alert("Firebase Fehler!"); }
+  // Global für Buttons
+  window.send = async (type) => {
+    if(!userPos) return;
+    await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
+    
+    if(document.getElementById('voice-toggle').checked) {
+        const msg = new SpeechSynthesisUtterance("Meldung erfolgreich");
+        msg.lang = 'de-DE'; window.speechSynthesis.speak(msg);
+    }
   };
 
+  window.toggleSettings = () => {
+    const m = document.getElementById('settings-modal');
+    m.classList.toggle('hidden');
+    m.style.display = m.classList.contains('hidden') ? 'none' : 'flex';
+  };
+
+  // GPS & Map
   navigator.geolocation.watchPosition(p => {
     userPos = [p.coords.latitude, p.coords.longitude];
     document.getElementById('speed').innerText = Math.round((p.coords.speed || 0) * 3.6);
     
     if(!map) {
       map = L.map('map', { zoomControl: false, attributionControl: false }).setView(userPos, 16);
-      tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
       userMarker = L.circleMarker(userPos, { radius: 10, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
       
       onSnapshot(collection(db, "reports"), snap => {
@@ -155,18 +172,21 @@
           }
         });
       });
+      fetchWeather();
     } else {
       userMarker.setLatLng(userPos);
     }
   }, null, { enableHighAccuracy: true });
 
-  document.getElementById('light-toggle').onchange = (e) => {
-    map.removeLayer(tiles);
-    const url = e.target.checked ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-    tiles = L.tileLayer(url).addTo(map);
-    document.body.style.background = e.target.checked ? '#fff' : '#020617';
+  async function fetchWeather() {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${userPos[0]}&longitude=${userPos[1]}&current_weather=true`);
+    const d = await r.json();
+    document.getElementById('weather').innerText = `${d.current_weather.temperature}°C • ${d.current_weather.windspeed} KM/H WIND`;
+  }
+
+  document.getElementById('ghost-toggle').onchange = (e) => {
+    document.getElementById('map').style.opacity = e.target.checked ? '0.05' : '1';
   };
 </script>
-
 </body>
 </html>
