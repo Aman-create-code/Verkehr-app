@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>TS PRO - Ultimate Fix 2026</title>
+  <title>TS PRO - Zero Interference Fix</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -15,148 +15,100 @@
   <style>
     :root { --p-blue: #3b82f6; --bg-dark: #020617; --panel: #0f172a; }
     
-    /* Verhindert jegliches Scrollen oder Wackeln */
     body, html { 
       height: 100svh; width: 100vw; margin: 0; 
       overflow: hidden; background: #000; color: white; 
       font-family: 'Inter', sans-serif; 
-      position: fixed;
+      position: fixed; touch-action: none;
     }
 
-    /* Start Overlay - Absolute Priorität */
     #start-overlay {
-      position: fixed; inset: 0; z-index: 100000;
-      background: linear-gradient(to bottom, #020617, #000);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: fixed; inset: 0; z-index: 1000000;
+      background: #020617; display: flex; align-items: center; justify-content: center;
     }
 
-    /* App Struktur */
     .app-grid { 
-      display: grid; 
-      grid-template-rows: auto 1fr auto; 
-      height: 100svh; 
-      width: 100vw;
-      visibility: hidden; 
+      display: grid; grid-template-rows: auto 1fr auto; 
+      height: 100svh; width: 100vw; visibility: hidden; 
     }
     .app-grid.active { visibility: visible; }
 
-    /* Die UI Layer muss ALLES überlagern */
-    .ui-layer { 
+    /* Dieser Layer liegt ÜBER der Karte und fängt alle Klicks ab */
+    .ui-layer-top { 
       z-index: 99999 !important; 
       pointer-events: auto !important;
+      position: relative;
     }
 
-    #map { 
-      width: 100%; 
-      height: 100%; 
-      z-index: 1; 
-      background: #000;
-      pointer-events: auto;
-    }
+    #map-container { position: relative; width: 100%; height: 100%; z-index: 1; }
+    #map { width: 100%; height: 100%; }
 
-    /* Massive Klick-Flächen für die Buttons */
     .action-btn {
-      width: 75px; height: 75px; 
-      border-radius: 24px;
+      width: 75px; height: 75px; border-radius: 22px;
       display: flex; align-items: center; justify-content: center;
-      transition: transform 0.1s, background 0.1s; 
-      background: #1e293b; 
-      border: 2px solid rgba(255,255,255,0.1);
-      cursor: pointer !important;
-      pointer-events: auto !important;
-      touch-action: manipulation;
+      background: #1e293b; border: 2px solid rgba(255,255,255,0.1);
+      cursor: pointer !important; touch-action: manipulation !important;
       -webkit-tap-highlight-color: transparent;
     }
     
+    /* Visuelles Feedback damit du siehst dass der Button gedrückt wurde */
     .action-btn:active { 
-      transform: scale(0.85); 
-      background: #3b82f6 !important;
-      border-color: #fff;
+      transform: scale(0.9); background: #3b82f6 !important; border-color: white !important;
     }
 
     #nav-bar {
       position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
-      width: 92%; max-width: 550px; z-index: 999999; 
-      transition: top 0.5s cubic-bezier(0.17, 0.84, 0.44, 1);
+      width: 92%; max-width: 550px; z-index: 100000; 
+      transition: top 0.4s ease-out;
     }
-    #nav-bar.visible { top: 25px; }
+    #nav-bar.visible { top: 20px; }
 
     .leaflet-routing-container { display: none !important; }
 
-    /* iPad Landscape Fix */
     @media (min-width: 1024px) {
       .app-grid { grid-template-columns: 140px 1fr; grid-template-rows: 100px 1fr; }
-      .sidebar { 
-        grid-row: 1/3; flex-direction: column !important; 
-        height: 100%; border-right: 1px solid rgba(255,255,255,0.1); 
-        justify-content: center !important; gap: 2rem !important;
-      }
-      header { grid-column: 2; border-bottom: 1px solid rgba(255,255,255,0.1); }
-      #map { grid-column: 2; }
+      .sidebar { grid-row: 1/3; flex-direction: column !important; justify-content: center !important; gap: 2rem !important; border-right: 1px solid #1e293b;}
+      header { grid-column: 2; border-bottom: 1px solid #1e293b; }
+      #map-container { grid-column: 2; }
     }
   </style>
 </head>
 <body>
 
 <div id="start-overlay">
-    <div class="text-center">
-        <div class="mb-6 inline-block p-6 rounded-full bg-blue-600/10 border border-blue-500/20">
-            <i class="fas fa-radar text-blue-500 text-5xl animate-pulse"></i>
-        </div>
-        <h1 class="text-6xl font-black italic text-blue-500 mb-2 tracking-tighter">TS PRO</h1>
-        <p class="text-slate-500 mb-12 tracking-[0.4em] uppercase text-[10px] font-bold">Ultimate Control Unit</p>
-        <button id="init-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-8 px-20 rounded-[40px] shadow-[0_25px_80px_rgba(37,99,235,0.5)] transition-all active:scale-90 uppercase text-2xl border-b-4 border-blue-800">
-            System Online
-        </button>
-    </div>
+    <button id="init-btn" class="bg-blue-600 text-white font-black py-8 px-20 rounded-[40px] shadow-2xl active:scale-95 text-2xl uppercase">
+        System Starten
+    </button>
 </div>
 
-<div id="nav-bar" class="bg-slate-900 border border-white/10 p-4 rounded-[32px] flex gap-3 items-center shadow-2xl">
-  <div class="flex-grow flex items-center bg-black/40 rounded-2xl px-5 border border-white/5">
-    <i class="fas fa-search text-slate-500 mr-3"></i>
-    <input type="text" id="dest-input" placeholder="Ziel eingeben..." class="bg-transparent w-full py-5 outline-none text-white font-semibold">
-  </div>
-  <button onclick="startNav()" class="bg-blue-600 hover:bg-blue-500 px-10 py-5 rounded-2xl font-black uppercase text-sm shadow-lg">Go</button>
+<div id="nav-bar" class="bg-slate-900 border border-white/10 p-4 rounded-[32px] flex gap-3 items-center shadow-2xl ui-layer-top">
+  <input type="text" id="dest-input" placeholder="Ziel..." class="bg-black/40 w-full p-4 rounded-2xl outline-none text-white font-semibold">
+  <button onclick="startNav(event)" class="bg-blue-600 px-8 py-4 rounded-2xl font-black">Go</button>
 </div>
 
 <div class="app-grid" id="main-app">
-  <header class="p-6 flex justify-between items-center ui-layer bg-slate-950/80 backdrop-blur-md">
-    <div class="pl-2">
-      <h1 class="text-3xl font-black italic text-blue-500 tracking-tighter leading-none">TS <span class="text-white">PRO</span></h1>
-      <p id="weather" class="text-[10px] font-black text-slate-500 uppercase mt-1">Telemetry Sync...</p>
+  <header class="p-6 flex justify-between items-center ui-layer-top bg-slate-950">
+    <div>
+      <h1 class="text-3xl font-black italic text-blue-500">TS <span class="text-white">PRO</span></h1>
+      <p id="weather" class="text-[10px] font-bold opacity-40 uppercase">Audio Engine Ready</p>
     </div>
-    
-    <div class="bg-slate-900 border border-white/10 px-10 py-3 rounded-2xl flex items-center gap-8">
-      <div class="text-center">
-        <span id="speed" class="text-6xl font-black text-white italic tracking-tighter">0</span>
-        <span class="text-[10px] block font-black text-blue-500 uppercase tracking-widest -mt-1">km/h</span>
-      </div>
+    <div class="bg-slate-900 px-8 py-3 rounded-2xl border border-white/10">
+        <span id="speed" class="text-5xl font-black italic">0</span>
+        <span class="text-[10px] font-bold text-blue-500 uppercase ml-2">km/h</span>
     </div>
   </header>
 
-  <div id="map"></div>
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
 
-  <footer class="sidebar p-6 flex justify-around items-center gap-4 ui-layer bg-slate-950 border-t border-white/10">
-    <button onclick="toggleNav()" class="action-btn border-blue-500/40 bg-blue-600/10" id="nav-trigger">
-        <i class="fas fa-route text-blue-400 text-3xl"></i>
-    </button>
-    <button onclick="toggleSatellite()" class="action-btn" id="sat-trigger">
-        <i class="fas fa-globe-europe text-slate-400 text-3xl"></i>
-    </button>
-    
-    <button onclick="handleReport('police')" class="action-btn border-blue-500/20">
-        <i class="fas fa-shield-halved text-blue-400 text-3xl"></i>
-    </button>
-    <button onclick="handleReport('speed')" class="action-btn border-red-500/20">
-        <i class="fas fa-camera text-red-500 text-3xl"></i>
-    </button>
-    <button onclick="handleReport('accident')" class="action-btn border-orange-500/20">
-        <i class="fas fa-triangle-exclamation text-orange-400 text-3xl"></i>
-    </button>
-    
-    <button onclick="window.location.href='tel:112'" class="action-btn bg-red-600/20 border-red-500/40">
-        <i class="fas fa-phone-flip text-white text-3xl"></i>
-    </button>
+  <footer class="sidebar p-6 flex justify-around items-center ui-layer-top bg-slate-950">
+    <button onclick="toggleNav(event)" class="action-btn border-blue-500/40"><i class="fas fa-route text-blue-400 text-3xl"></i></button>
+    <button onclick="toggleSatellite(event)" class="action-btn"><i class="fas fa-globe text-slate-400 text-3xl"></i></button>
+    <button onclick="handleReport(event, 'police')" class="action-btn"><i class="fas fa-shield-halved text-blue-400 text-3xl"></i></button>
+    <button onclick="handleReport(event, 'speed')" class="action-btn"><i class="fas fa-camera text-red-500 text-3xl"></i></button>
+    <button onclick="handleReport(event, 'accident')" class="action-btn"><i class="fas fa-triangle-exclamation text-orange-400 text-3xl"></i></button>
+    <button onclick="event.stopPropagation(); window.location.href='tel:112'" class="action-btn bg-red-600/20"><i class="fas fa-phone-flip text-white text-3xl"></i></button>
   </footer>
 </div>
 
@@ -181,71 +133,64 @@
     sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
   };
 
-  // INITIALISIERUNG
-  document.getElementById('init-btn').addEventListener('click', function() {
-    const s = window.speechSynthesis;
-    const m = new SpeechSynthesisUtterance("System bereit. Navigation und Radar aktiv.");
-    m.lang = 'de-DE'; s.speak(m);
-
+  document.getElementById('init-btn').addEventListener('click', () => {
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance("System aktiv"));
     document.getElementById('start-overlay').style.display = 'none';
     document.getElementById('main-app').classList.add('active');
     startTracking();
   });
 
-  // GLOBALE FUNKTIONEN FÜR ONCLICK
-  window.handleReport = async (type) => {
+  // STOP PROPAGATION IST DER SCHLÜSSEL
+  window.handleReport = async (e, type) => {
+    e.stopPropagation(); // Verhindert Klick auf Karte
     if(!userPos) return;
     try {
       await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
       window.speechSynthesis.speak(new SpeechSynthesisUtterance("Meldung gesendet"));
-    } catch(e) { console.error(e); }
+    } catch(err) {}
   };
 
-  window.toggleNav = () => {
-    const bar = document.getElementById('nav-bar');
-    bar.classList.toggle('visible');
-    if(bar.classList.contains('visible')) document.getElementById('dest-input').focus();
+  window.toggleNav = (e) => {
+    e.stopPropagation();
+    document.getElementById('nav-bar').classList.toggle('visible');
   };
 
-  window.toggleSatellite = () => {
+  window.toggleSatellite = (e) => {
+    e.stopPropagation();
     map.removeLayer(tiles[currentLayer]);
     currentLayer = (currentLayer === 'dark') ? 'sat' : 'dark';
     tiles[currentLayer].addTo(map);
   };
 
-  window.startNav = async () => {
+  window.startNav = async (e) => {
+    e.stopPropagation();
     const val = document.getElementById('dest-input').value;
     if(!val || !userPos) return;
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}`);
-      const d = await r.json();
-      if(d[0]) {
-        const target = L.latLng(d[0].lat, d[0].lon);
-        if(routingControl) map.removeControl(routingControl);
-        routingControl = L.Routing.control({
-          waypoints: [L.latLng(userPos[0], userPos[1]), target],
-          addWaypoints: false, draggableWaypoints: false,
-          lineOptions: { styles: [{ color: '#3b82f6', weight: 10, opacity: 0.8 }] },
-          createMarker: () => null
-        }).addTo(map);
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance("Route wird berechnet."));
-        document.getElementById('nav-bar').classList.remove('visible');
-      }
-    } catch(e) {}
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}`);
+    const d = await r.json();
+    if(d[0]) {
+      const target = L.latLng(d[0].lat, d[0].lon);
+      if(routingControl) map.removeControl(routingControl);
+      routingControl = L.Routing.control({
+        waypoints: [L.latLng(userPos[0], userPos[1]), target],
+        lineOptions: { styles: [{ color: '#3b82f6', weight: 10 }] },
+        createMarker: () => null
+      }).addTo(map);
+      document.getElementById('nav-bar').classList.remove('visible');
+    }
   };
 
   function startTracking() {
     navigator.geolocation.watchPosition(p => {
       userPos = [p.coords.latitude, p.coords.longitude];
       document.getElementById('speed').innerText = Math.round((p.coords.speed || 0) * 3.6);
-      
       if(!map) {
         map = L.map('map', { zoomControl: false, attributionControl: false }).setView(userPos, 16);
         tiles[currentLayer].addTo(map);
-        userMarker = L.circleMarker(userPos, { radius: 12, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, weight: 4 }).addTo(map);
+        // UserMarker auf non-clickable setzen, damit er Buttons nicht stört
+        userMarker = L.circleMarker(userPos, { radius: 12, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1, weight: 4, interactive: false }).addTo(map);
         
-        const q = query(collection(db, "reports"), orderBy("time", "desc"), limit(40));
-        onSnapshot(q, snap => {
+        onSnapshot(query(collection(db, "reports"), orderBy("time", "desc"), limit(40)), snap => {
           snap.docChanges().forEach(c => {
             if (c.type === "added") {
               const d = c.doc.data();
@@ -254,20 +199,11 @@
             }
           });
         });
-        fetchWeather();
       } else {
         userMarker.setLatLng(userPos);
         if(routingControl) routingControl.spliceWaypoints(0, 1, L.latLng(userPos[0], userPos[1]));
       }
     }, null, { enableHighAccuracy: true });
-  }
-
-  async function fetchWeather() {
-    try {
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${userPos[0]}&longitude=${userPos[1]}&current_weather=true`);
-      const d = await r.json();
-      document.getElementById('weather').innerText = `${d.current_weather.temperature}°C • GPS SIGNAL STRONG`;
-    } catch(e) {}
   }
 </script>
 
