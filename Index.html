@@ -2,87 +2,39 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Traffic Sweet Pro</title>
+  <title>Traffic Sweet - GitHub Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
-  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    #map { height: calc(100vh - 280px); border-radius: 24px; margin: 12px; border: 1px solid rgba(255,255,255,0.1); }
-    .glass { background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(15px); }
-    .neon-glow { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
-    body { background-color: #050505; }
+    #map { height: calc(100vh - 280px); border-radius: 20px; margin: 10px; }
+    body { background-color: #0a0a0a; color: white; }
+    .glass { background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(10px); }
   </style>
 </head>
-<body class="text-slate-100 overflow-hidden h-screen flex flex-col">
+<body>
 
-<div id="danger-alert" class="hidden bg-red-600 p-2 text-center font-bold animate-pulse text-sm z-[2000]">
-   🚨 GEFAHR IN DER NÄHE!
-</div>
-
-<header class="p-6 glass border-b border-white/5">
-  <div class="max-w-md mx-auto flex justify-between items-end">
-    <div>
-      <h1 class="text-3xl font-black italic tracking-tighter text-blue-500">TRAFFIC SWEET</h1>
-      <p class="text-[10px] text-slate-500 font-bold tracking-[0.3em]">VERSION 2.0 LIVE</p>
-    </div>
-    <div id="gps-indicator" class="flex items-center gap-2 text-[10px] text-red-500 font-bold">
-      <span class="relative flex h-2 w-2">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-        <span id="gps-dot" class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-      </span>
-      GPS
-    </div>
+<header class="p-5 glass border-b border-white/10 flex justify-between items-center">
+  <h1 class="text-2xl font-black italic text-blue-500">TRAFFIC SWEET</h1>
+  <div class="bg-blue-600/20 px-4 py-2 rounded-full border border-blue-500/50">
+    <span id="speed" class="text-xl font-bold">0</span> <span class="text-[10px]">km/h</span>
   </div>
 </header>
 
-<main class="flex-grow flex flex-col pt-2">
-  <div class="px-4 mb-2">
-    <div class="flex gap-2 bg-slate-900/50 p-2 rounded-2xl border border-white/5 shadow-2xl">
-      <input id="nav-target" placeholder="Wohin fahren wir?" class="flex-grow bg-transparent p-2 outline-none text-sm">
-      <button onclick="calcRoute()" class="bg-blue-600 p-3 rounded-xl neon-glow"><i class="fas fa-location-arrow"></i></button>
-    </div>
-  </div>
-  <div id="map"></div>
-</main>
+<div id="map" class="shadow-2xl shadow-blue-500/10"></div>
 
-<footer class="glass p-5 rounded-t-[40px] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-  <div class="grid grid-cols-4 gap-4 max-w-md mx-auto">
-    <button onclick="sendReport('police')" class="flex flex-col items-center gap-1">
-      <div class="bg-indigo-600/20 p-4 rounded-2xl border border-indigo-500/50 w-full text-center hover:bg-indigo-600/40">
-        <i class="fas fa-shield-halved text-indigo-400 text-xl"></i>
-      </div>
-      <span class="text-[9px] font-bold text-slate-400 uppercase">Polizei</span>
-    </button>
-    <button onclick="sendReport('speed')" class="flex flex-col items-center gap-1">
-      <div class="bg-red-600/20 p-4 rounded-2xl border border-red-500/50 w-full text-center hover:bg-red-600/40">
-        <i class="fas fa-camera text-red-400 text-xl"></i>
-      </div>
-      <span class="text-[9px] font-bold text-slate-400 uppercase">Blitzer</span>
-    </button>
-    <button onclick="sendReport('accident')" class="flex flex-col items-center gap-1">
-      <div class="bg-orange-600/20 p-4 rounded-2xl border border-orange-500/50 w-full text-center hover:bg-orange-600/40">
-        <i class="fas fa-car-burst text-orange-400 text-xl"></i>
-      </div>
-      <span class="text-[9px] font-bold text-slate-400 uppercase">Unfall</span>
-    </button>
-    <button onclick="sendReport('traffic')" class="flex flex-col items-center gap-1">
-      <div class="bg-amber-500/20 p-4 rounded-2xl border border-amber-500/50 w-full text-center hover:bg-amber-600/40">
-        <i class="fas fa-traffic-light text-amber-400 text-xl"></i>
-      </div>
-      <span class="text-[9px] font-bold text-slate-400 uppercase">Stau</span>
-    </button>
-  </div>
+<footer class="fixed bottom-0 w-full p-4 glass grid grid-cols-4 gap-2">
+  <button onclick="report('police')" class="bg-slate-800 p-3 rounded-xl flex flex-col items-center"><i class="fas fa-shield-alt text-blue-400"></i><span class="text-[9px] mt-1">POLIZEI</span></button>
+  <button onclick="report('speed')" class="bg-slate-800 p-3 rounded-xl flex flex-col items-center"><i class="fas fa-camera text-red-400"></i><span class="text-[9px] mt-1">BLITZER</span></button>
+  <button onclick="report('accident')" class="bg-slate-800 p-3 rounded-xl flex flex-col items-center"><i class="fas fa-car-crash text-orange-400"></i><span class="text-[9px] mt-1">UNFALL</span></button>
+  <button onclick="report('traffic')" class="bg-slate-800 p-3 rounded-xl flex flex-col items-center"><i class="fas fa-traffic-light text-amber-400"></i><span class="text-[9px] mt-1">STAU</span></button>
 </footer>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, updateDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBYAb-92E5V94UhNVAQl9niTAPkBOBNOjc",
@@ -95,93 +47,39 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  let map, userPos, userMarker;
 
-  let map, userPos, routing, userMarker;
-  let markers = {};
-  const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-
-  // --- MAP & GPS ---
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(pos => {
       userPos = [pos.coords.latitude, pos.coords.longitude];
-      updateUI(userPos);
+      const speedKmh = Math.round((pos.coords.speed || 0) * 3.6);
+      document.getElementById('speed').innerText = speedKmh;
+      
+      if (!map) {
+        map = L.map('map', { zoomControl: false }).setView(userPos, 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        userMarker = L.circleMarker(userPos, { radius: 8, color: 'white', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
+        loadMarkers();
+      } else {
+        userMarker.setLatLng(userPos);
+      }
     }, null, { enableHighAccuracy: true });
   }
 
-  function updateUI(pos) {
-    document.getElementById('gps-dot').classList.replace('bg-red-500', 'bg-green-500');
-    document.getElementById('gps-indicator').classList.replace('text-red-500', 'text-green-500');
-
-    if (!map) {
-      map = L.map('map', { zoomControl: false }).setView(pos, 15);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-      userMarker = L.circleMarker(pos, { radius: 10, color: '#fff', fillColor: '#3b82f6', fillOpacity: 1 }).addTo(map);
-      initReports();
-    } else {
-      userMarker.setLatLng(pos);
-      checkProximity(pos);
-    }
-  }
-
-  // --- LOGIC ---
-  window.sendReport = async (type) => {
-    if (!userPos) return alert("Warte auf GPS...");
-    await addDoc(collection(db, "reports"), {
-      type, lat: userPos[0], lng: userPos[1], votes: 1, time: Date.now()
-    });
+  window.report = async (type) => {
+    await addDoc(collection(db, "reports"), { type, lat: userPos[0], lng: userPos[1], time: Date.now() });
   };
 
-  function initReports() {
-    onSnapshot(collection(db, "reports"), (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
+  function loadMarkers() {
+    onSnapshot(collection(db, "reports"), snap => {
+      snap.docChanges().forEach(change => {
         const d = change.doc.data();
-        const id = change.doc.id;
-
-        if (change.type === "removed") {
-          if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
-        } else {
-          // Löschen wenn älter als 60 Min
-          if (Date.now() - d.time > 3600000) return;
-
-          const icons = { police: '🚓', speed: '📸', accident: '💥', traffic: '🚗' };
-          if (!markers[id]) {
-            markers[id] = L.marker([d.lat, d.lng], {
-              icon: L.divIcon({ html: `<div class="text-3xl">${icons[d.type]}</div>`, className: 'bg-transparent' })
-            }).addTo(map).bindPopup(`<div class="text-black font-bold">${d.type.toUpperCase()}<br><button onclick="vote('${id}')" class="text-blue-600 mt-2">Bestätigen</button></div>`);
-          }
+        if (Date.now() - d.time < 3600000) {
+           L.marker([d.lat, d.lng], { icon: L.divIcon({ html: `<div class="text-2xl">⚠️</div>`, className: 'bg-transparent'}) }).addTo(map);
         }
       });
     });
   }
-
-  window.vote = async (id) => {
-    const docRef = doc(db, "reports", id);
-    await updateDoc(docRef, { votes: increment(1) });
-  };
-
-  function checkProximity(pos) {
-    let near = false;
-    Object.values(markers).forEach(m => {
-      if (map.distance(pos, m.getLatLng()) < 500) near = true;
-    });
-    const alertBox = document.getElementById('danger-alert');
-    if (near && alertBox.classList.contains('hidden')) alertSound.play().catch(()=>{});
-    alertBox.classList.toggle('hidden', !near);
-  }
-
-  window.calcRoute = async () => {
-    const q = document.getElementById('nav-target').value;
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    if (data[0]) {
-      if (routing) map.removeControl(routing);
-      routing = L.Routing.control({
-        waypoints: [L.latLng(userPos[0], userPos[1]), L.latLng(data[0].lat, data[0].lon)],
-        lineOptions: { styles: [{ color: '#3b82f6', weight: 6 }] },
-        createMarker: () => null
-      }).addTo(map);
-    }
-  };
 </script>
 </body>
 </html>
